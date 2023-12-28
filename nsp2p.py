@@ -85,6 +85,8 @@ class Graph:
     def __init__(self, v = 256, l = 10):
         self.elements = {}
         self.l = l
+        self.efficiency = None
+        self.tests = 0
         self.init_graph(v, l)
     
     def __repr__(self) -> str:
@@ -183,6 +185,9 @@ class Graph:
             self.elements[father].increment_quality(node)
             node = father
             path.insert(0, node)
+        
+        self.efficiency = (self.efficiency * self.tests + (len(path) - 1)) / (self.tests + 1)
+        self.tests += 1
         
         return path
 
