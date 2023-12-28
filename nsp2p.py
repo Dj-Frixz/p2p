@@ -234,6 +234,9 @@ class Graph:
         # Reset phase
         for node in self.elements:
             self.elements[node].reset()
+        
+        self.efficiency = 0
+        self.tests = 0
 
     def draw(self, start, max_depth):
         string = ''
