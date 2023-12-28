@@ -14,7 +14,7 @@ class GraphGui:
         self.elements = {}
         self.bg = self._nodes_surface()
         self.clean = 1
-        self.FONT = pygame.font.SysFont('monospace',int(20*(self.screen_height/1080)))
+        self.FONT = pygame.font.SysFont('monospace', 20)
         # pygame.display.set_icon( load_sprite("icon.ico", False))
     
     def main_loop(self):
@@ -34,7 +34,7 @@ class GraphGui:
                 self.clean = 1
 
     def _process_logic(self):
-        path = self.graph.random_bfs()
+        path = self.graph.random_bfs(max_depth=256)
 
         if path is not None:
             self._draw_node(self.elements[path[0]], (0,0,255))
@@ -42,11 +42,13 @@ class GraphGui:
             self._draw_edges(zip(path[:-1], path[1:]), (0,255,0))
 
     def _draw(self):
-        if self.clean == 1:
-            self.screen.fill((0,0,0))
-            self.screen.blit(self.bg, (0,0))
-            self._draw_edges(self.graph.edges)
-            self.clean = 0
+        # if self.clean == 1:
+        self.screen.fill((0,0,0))
+        self.screen.blit(self.bg, (0,0))
+        self._draw_edges(self.graph.edges)
+        self.clean = 0
+        
+        self.screen.blit(self.FONT.render('efficiency: '+str(self.graph.efficiency), False, (255,255,255)), (600,50))
         
         pygame.display.flip()
 
