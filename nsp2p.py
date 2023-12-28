@@ -85,7 +85,7 @@ class Graph:
     def __init__(self, v = 256, l = 10):
         self.elements = {}
         self.l = l
-        self.efficiency = None
+        self.efficiency = 0
         self.tests = 0
         self.init_graph(v, l)
     
