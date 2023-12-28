@@ -38,12 +38,7 @@ class Node:
         links, quality = zip(*sorted(zip(self.links, self.quality), key=lambda x: x[1], reverse=reverse))
         self.links, self.quality = list(links), list(quality)
     
-    def add_link(self, link, quality, l) -> None:
-        # if len(self.links) == l:
-            # self.sort()
-            # self.links[-1] = link
-            # self.quality[-1] = quality
-        # else:
+    def add_link(self, link, quality) -> None:
         self.links += [link]
         self.quality += [quality]
 
@@ -55,23 +50,6 @@ class Node:
 
     def increment_quality(self, link):
         self.quality[self.links.index(link)] += 1
-    
-    def update(self, n, l):
-        self.candidates.sort(key = lambda x: x[1], reverse = True)
-        self.candidates = self.candidates[:n]
-        n_rem = n - (l - len(self.links))
-        added = self.candidates[n_rem:]
-        if n_rem < n:
-            added_links, added_quality = zip(*added)
-            self.links, self.quality = self.links + list(added_links), self.quality + list(added_quality)
-        removed = []
-        for link, quality in self.candidates[:n_rem]:
-            i = self.quality.index(min(self.quality))
-            if self.quality[i] < quality:
-                removed.append(self.links[i])
-                added.append((link, quality))
-                self.links[i], self.quality[i] = link, quality
-        return added, removed
     
     def add(self, n_add):
         self.candidates.sort(key = lambda x: x[1], reverse = True)
@@ -132,6 +110,7 @@ class Graph:
     
     @property
     def unilinks(self):
+        '''Used for debugging'''
         edges = []
         for node in self.elements:
             for link in self.elements[node].links:
@@ -238,7 +217,7 @@ class Graph:
         for node in self.elements:
             added = self.elements[node].add(n_share)
             for link, quality in added:
-                self.elements[link].add_link(node, quality, self.l)
+                self.elements[link].add_link(node, quality)
         
         # Remove phase
         for node in self.elements:
