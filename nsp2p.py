@@ -82,9 +82,9 @@ class Node:
 
 class Graph:
 
-    def __init__(self, v = 256, l = 8):
+    def __init__(self, v = 256, l = 10):
         self.elements = {}
-        self.l = l+2
+        self.l = l
         self.init_graph(v, l)
     
     def __repr__(self) -> str:
@@ -254,8 +254,8 @@ class Graph:
 
 if __name__ == '__main__':
     graph = Graph(20, 2)
-    iterations = 100
-    graph.simulate()
+    iterations = 1000
+    graph.simulate(iterations)
     print(graph)
     graph.evolve()
     print(graph)
