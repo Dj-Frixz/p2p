@@ -186,14 +186,15 @@ class Graph:
         
         return path
 
-    def simulate(self, iterations = 100, max_depth = 4):
+    def random_bfs(self, max_depth = 4):
         values = np.array(list(self.elements))
+        start = np.random.choice(values)
+        searched = np.random.choice(values[values!=start])
+        return self.bfs(start, searched, max_depth)
+
+    def simulate(self, iterations = 100, max_depth = 4):
         for _ in range(iterations):
-            start = np.random.choice(values)
-            print('starting node... ', start)
-            searched = np.random.choice(values[values!=start])
-            print('looking for node... ', searched)
-            print('path from',start,'to',searched,'... ',self.bfs(start, searched, max_depth))
+            print('random path:',self.random_bfs(max_depth))
     
     def evolve(self, n_share = 3):
         # Share phase
