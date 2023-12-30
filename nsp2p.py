@@ -85,7 +85,7 @@ class Graph:
     def __init__(self, v = 256, l = 10):
         self.elements = {}
         self.l = l
-        self.efficiency = 0
+        self.avg_distance = 0
         self.tests = 0
         self.init_graph(v, l)
     
@@ -174,9 +174,9 @@ class Graph:
         if node != searched:
             return None
         
-        return self.quality_update(node, start)
+        return self.quality_update(node, start, depth)
     
-    def quality_update(self, node, start):
+    def quality_update(self, node, start, depth):
         path = [node]
 
         while node != start:
@@ -186,7 +186,7 @@ class Graph:
             node = father
             path.insert(0, node)
         
-        self.efficiency = (self.efficiency * self.tests + (len(path) - 1)) / (self.tests + 1)
+        self.avg_distance = (self.avg_distance * self.tests + depth) / (self.tests + 1)
         self.tests += 1
         
         return path
@@ -235,7 +235,7 @@ class Graph:
         for node in self.elements:
             self.elements[node].reset()
         
-        self.efficiency = 0
+        self.avg_distance = 0
         self.tests = 0
 
     def draw(self, start, max_depth):
