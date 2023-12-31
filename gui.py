@@ -15,7 +15,7 @@ class GraphGui:
         self.bg = self._nodes_surface()
         self.clean = 1
         self.FONT = pygame.font.SysFont('monospace', 20)
-        self.delay = 0.1
+        self.delay = 0
         self.pause = False
         self.show_edges = True
         # pygame.display.set_icon( load_sprite("icon.ico", False))
@@ -37,7 +37,6 @@ class GraphGui:
                 match event.key:
                     case pygame.K_RETURN:
                         self.graph.evolve()
-                        self.clean = 1
                     case pygame.K_UP:
                         self.delay += 0.1
                     case pygame.K_DOWN:
@@ -50,7 +49,10 @@ class GraphGui:
                         self.show_edges = self.show_edges == False
 
     def _process_logic(self):
-        self.path = self.graph.random_bfs(max_depth=256)
+        if self.graph.tests == 1000:
+            self.graph.evolve()
+        
+        self.path = self.graph.random_bfs(max_depth=4)
 
     def _draw(self):
         # if self.clean == 1:
@@ -95,5 +97,5 @@ class GraphGui:
         pygame.draw.line(self.screen, color, self.elements[start_node], self.elements[end_node], width)
 
 if __name__ == '__main__':
-    g = GraphGui(40, 5)
+    g = GraphGui(256, 8)
     g.main_loop()

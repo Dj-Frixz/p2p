@@ -27,7 +27,7 @@ class Queue:
 class Node:
     def __init__(self, links: list[int] = []):
         self.links = links
-        self.quality = [0] * len(links)
+        self.quality = []
         self.father = None
         self.candidates = []
     
@@ -37,24 +37,44 @@ class Node:
     def sort(self, reverse = True) -> None:
         links, quality = zip(*sorted(zip(self.links, self.quality), key=lambda x: x[1], reverse=reverse))
         self.links, self.quality = list(links), list(quality)
+    
+    def add_link(self, link, quality) -> None:
+        self.links += [link]
+        self.quality += [quality]
+
+    def remove_link(self, link):
+        if link in self.links:
+            i = self.links.index(link)
+            self.links.pop(i)
+            self.quality.pop(i)
 
     def increment_quality(self, link, amount = 1):
-        self.quality[self.links.index(link)] += amount
-
-    def update(self, n = 3):
-        self.candidates = sorted(self.candidates, reverse=True, key=lambda x: x[1])[:n]
-        
-        for i in range(len(self.candidates)):
-            worst = min(self.quality)
-
-            if worst < self.candidates[i][1]:
-                j = self.quality.index(worst)
-                self.links[j] = self.candidates[i][0]
-                self.quality[j] = self.candidates[i][1]
-            else:
+        self.quality[self.links.index(link)] += 1
+    
+    def add(self, n_add):
+        self.candidates.sort(key = lambda x: x[1], reverse = True)
+        added = []
+        for x in self.candidates:
+            if x[0] not in self.links:
+                added.append(x)
+            if len(added)==n_add:
                 break
         
-        self.reset()
+        added_links, added_quality = zip(*added) if len(added)!=0 else ([], [])
+        self.links, self.quality = self.links + list(added_links), self.quality + list(added_quality)
+        return added
+    
+    def remove(self, l):
+        self.sort()
+        n_rem = len(self.links) - l
+
+        if n_rem > 0:
+            removed = self.links[-n_rem:]
+            self.links = self.links[:-n_rem]
+            self.quality = self.quality[:-n_rem]
+            return removed
+        
+        return []
 
     def reset(self):
         self.candidates = []
@@ -62,7 +82,7 @@ class Node:
 
 class Graph:
 
-    def __init__(self, v = 256, l = 8):
+    def __init__(self, v = 256, l = 10):
         self.elements = {}
         self.l = l
         self.avg_distance = 0
@@ -97,28 +117,46 @@ class Graph:
         for node in self.elements:
             for link in self.elements[node].links:
                 edges.append((node, link))
-
-        return sorted(edges)
+        edges.sort(key=lambda x: (min(x), max(x)))
+        return edges
 
     def init_graph(self, v, l):
         ids = np.arange(v, dtype=np.uint8)
         values = np.random.choice(ids, size=v, replace=False)
-
+        free_nodes = values.copy()
         for i in ids:
             node = values[i]
             pred_succ = [values[(i-1) % v], values[(i+1) % v]]
-            mask = (values!=node)*(values!=pred_succ[0])*(values!=pred_succ[1])
-            links = np.random.choice(values[mask], l, replace=False)
-            self.elements[node] = Node(pred_succ + list(links))
+            free_nodes = np.delete(free_nodes, 0) if node in free_nodes else free_nodes
+            choices = np.delete(free_nodes, 0) if pred_succ[1] in free_nodes else free_nodes
+            if i==0:
+                choices = np.delete(choices, v-3)   # remove if structure should not be circular
+            
+            if node not in self.elements:
+                self.elements[node] = Node()
+            
+            links = list(np.random.choice(choices, min(l - len(self.elements[node].links), choices.size), replace=False))
+            self.elements[node].links = pred_succ + self.elements[node].links + links
+
+            for link in links:
+                if link in self.elements:
+                    self.elements[link].links += [node]
+                else:
+                    self.elements[link] = Node([node])
+
+                if len(self.elements[link].links) == l:
+                    free_nodes = np.delete(free_nodes, np.nonzero(free_nodes==link))
+            
+            self.elements[node].quality = [0] * len(self.elements[node].links)
     
     def bfs(self, start, searched, max_depth = 4):
         node = start
         depth = 0
         queue1 = Queue()
         queue2 = Queue()
-        visited = set()
+        visited = {node}
 
-        while (depth<=max_depth):
+        while (node!=searched and depth<=max_depth):
 
             for link in self.elements[node].links:
                 if link not in visited:
@@ -134,8 +172,6 @@ class Graph:
                 depth += 1
 
             node = queue1.read()
-            if node == searched:
-                break
         
         if node != searched:
             return None
@@ -144,14 +180,13 @@ class Graph:
     
     def quality_update(self, node, start, depth):
         path = [node]
-        node = self.elements[node].father
 
         while node != start:
-            self.elements[node].increment_quality(path[0], 1)
+            father = self.elements[node].father
+            self.elements[node].increment_quality(father, depth)
+            self.elements[father].increment_quality(node, depth)
+            node = father
             path.insert(0, node)
-            node = self.elements[node].father
-        
-        path.insert(0, node)
         
         self.avg_distance = (self.avg_distance * self.tests + depth) / (self.tests + 1)
         self.tests += 1
@@ -161,7 +196,7 @@ class Graph:
     def random_bfs(self, max_depth = 4):
         values = np.array(list(self.elements))
         start = np.random.choice(values)
-        searched = np.random.choice(values) # (values[values!=start])   !!
+        searched = np.random.choice(values[values!=start])
         return self.bfs(start, searched, max_depth)
 
     def simulate(self, iterations = 100, max_depth = 4):
@@ -186,15 +221,26 @@ class Graph:
                     else:
                         self.elements[link].candidates += [x]
         
-        # Update phase
+        # Add phase
         for node in self.elements:
-            self.elements[node].update()  
+            added = self.elements[node].add(n_share)
+            for link, quality in added:
+                self.elements[link].add_link(node, quality)
+        
+        # Remove phase
+        for node in self.elements:
+            removed = self.elements[node].remove(self.l)
+            for link in removed:
+                self.elements[link].remove_link(node)
+        
+        # Reset phase
+        for node in self.elements:
+            self.elements[node].reset()
         
         self.avg_distance = 0
         self.tests = 0
 
     def draw(self, start, max_depth):
-        '''Used for debugging purposes'''
         string = ''
         queue1 = Queue()
         queue2 = Queue()
