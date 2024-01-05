@@ -1,26 +1,26 @@
 from sys import exit
 from time import sleep
 import pygame
-from nsp2p import Graph
+from nsp2p import Network
 
-class GraphGui:
+class NetGui:
 
     def __init__(self, v, l) -> None:
         pygame.init()
-        pygame.display.set_caption("nsp2p demonstration")
+        pygame.display.set_caption("NetSim")
         self.screen = pygame.display.set_mode((800, 600))
+        # pygame.display.set_icon( load_sprite("icon.ico", False))
         self.center = pygame.math.Vector2((400, 300))
-        self.graph = Graph(v, l)
+        self.net = Network(v, l)
         self.elements = {}
         self.bg = self._nodes_surface()
-        self.bg_wedges = self._draw_edges(self.bg.copy(), self.graph.edges)
+        self.bg_wedges = self._draw_edges(self.bg.copy(), self.net.edges)
         self.clean = 1
         self.FONT = pygame.font.SysFont('monospace', 20)
         self.delay = 0
         self.pause = False
         self.show_edges = True
-        self.show_tests = True
-        # pygame.display.set_icon( load_sprite("icon.ico", False))
+        self.fast_mode = False
     
     def main_loop(self):
         while True:
@@ -49,14 +49,17 @@ class GraphGui:
                         self._process_logic()
                     case pygame.K_h:
                         self.show_edges = self.show_edges == False
-                    case pygame.K_t:
-                        self.show_tests = self.show_tests == False
+                    case pygame.K_f:
+                        self.fast_mode = self.fast_mode == False
 
     def _process_logic(self):
-        if self.graph.tests == 1000:
+        if self.net.tests >= 1000:
             self.evolve()
         
-        self.path = self.graph.random_bfs(max_depth=4)
+        if self.fast_mode:
+            self.net.simulate(1000)
+        else:
+            self.path = self.net.random_bfs(max_depth=4)
 
     def _draw(self):
         # if self.clean == 1:
@@ -67,22 +70,22 @@ class GraphGui:
         else:
             self.screen.blit(self.bg, (0,0))
         
-        if self.show_tests and self.path is not None:
+        if not self.fast_mode and self.path is not None:
             self._draw_node(self.elements[self.path[0]], (0,0,255))
             self._draw_node(self.elements[self.path[-1]], (255,0,0))
             self._draw_edges(self.screen, zip(self.path[:-1], self.path[1:]), (0,255,0), 2)
         
-        self.screen.blit(self.FONT.render('avg dist: '+str(self.graph.avg_distance), False, (255,255,255)), (600,50))
-        self.screen.blit(self.FONT.render('tests: '+str(self.graph.tests), False, (255,255,255)), (600,80))
+        self.screen.blit(self.FONT.render('avg dist: '+str(self.net.avg_distance), False, (255,255,255)), (600,50))
+        self.screen.blit(self.FONT.render('tests: '+str(self.net.tests), False, (255,255,255)), (600,80))
         self.screen.blit(self.FONT.render('delay: {:.1f}'.format(self.delay), False, (255,255,255)), (20,50))
         
         pygame.display.flip()
 
     def _nodes_surface(self):
         cursor = pygame.math.Vector2((-260, 0))
-        angle = 360/len(self.graph.elements)
+        angle = 360/len(self.net.elements)
 
-        for node in self.graph.elements:
+        for node in self.net.elements:
             self.elements[node] = self.center + cursor
             self._draw_node(self.elements[node])
             cursor = cursor.rotate(angle)
@@ -99,9 +102,6 @@ class GraphGui:
         return surface
     
     def evolve(self):
-        self.graph.evolve()
-        self.bg_wedges = self._draw_edges(self.bg.copy(), self.graph.edges)
-
-if __name__ == '__main__':
-    g = GraphGui(100, 6)
-    g.main_loop()
+        self.net.evolve()
+        self.net.integrity_check()
+        self.bg_wedges = self._draw_edges(self.bg.copy(), self.net.edges)

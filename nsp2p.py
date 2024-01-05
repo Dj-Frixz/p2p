@@ -41,7 +41,7 @@ class Node:
     def increment_quality(self, link, amount = 1):
         self.quality[self.links.index(link)] += amount
 
-    def update(self, n = 3):
+    def update(self, l, n = 3):
         self.candidates = sorted(self.candidates, reverse=True, key=lambda x: x[1])[:n]
         
         for i in range(len(self.candidates)):
@@ -54,13 +54,15 @@ class Node:
             else:
                 break
         
+        self.sort()
+        self.links = self.links[:l]
         self.reset()
 
     def reset(self):
         self.candidates = []
         self.quality = [0] * len(self.quality)
 
-class Graph:
+class Network:
 
     def __init__(self, v = 256, l = 8):
         self.elements = {}
@@ -164,9 +166,12 @@ class Graph:
         searched = np.random.choice(values) # (values[values!=start])   !!
         return self.bfs(start, searched, max_depth)
 
-    def simulate(self, iterations = 100, max_depth = 4):
+    def simulate(self, iterations = 100, max_depth = 4, verbose = False):
         for _ in range(iterations):
-            print('random path:',self.random_bfs(max_depth))
+            path = self.random_bfs(max_depth)
+
+            if verbose == True:
+                print('random path:',path)
     
     def evolve(self, n_share = 3):
         # Share phase
@@ -188,10 +193,20 @@ class Graph:
         
         # Update phase
         for node in self.elements:
-            self.elements[node].update()  
+            self.elements[node].update(self.l + 2)  
         
         self.avg_distance = 0
         self.tests = 0
+    
+    def integrity_check(self, max_depth = 5):
+        '''Every node search for itself in the network to find out 
+        if they are still connected, otherwise force links with their neighbors.'''
+
+        for node in self.elements:
+            if self.bfs(node, node, max_depth) == None:
+                for link in self.elements[node].links:
+                    self.elements[link].links.append(node)
+                    self.elements[link].quality.append(0)
 
     def draw(self, start, max_depth):
         '''Used for debugging purposes'''
@@ -217,9 +232,9 @@ class Graph:
         
 
 if __name__ == '__main__':
-    graph = Graph(20, 2)
+    net = Network(20, 2)
     iterations = 1000
-    graph.simulate(iterations)
-    print(graph)
-    graph.evolve()
-    print(graph)
+    net.simulate(iterations)
+    print(net)
+    net.evolve()
+    print(net)
